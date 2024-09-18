@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar with Heart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sankofa+Display&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: "Sankofa Display", sans-serif;
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000000;
+        }
+
+        .calendar-container {
+            background-color: #000000;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 350px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .calendar-header {
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .day-names {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 2px solid #ddd;
+            font-weight: bold;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            padding-top: 10px;
+        }
+
+        .day {
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #heart {
+            position: relative;
+            width: 40px;  /* Adjusted smaller width */
+            height: 36px; /* Adjusted smaller height */
+            animation: pulse 1.5s infinite;
+        }
+
+        #heart:before,
+        #heart:after {
+            position: absolute;
+            content: "";
+            left: 20px; /* Adjusted for smaller size */
+            top: 5px;
+            width: 20px; /* Adjusted for smaller size */
+            height: 32px; /* Adjusted for smaller size */
+            background: red;
+            border-radius: 50px 50px 0 0;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        #heart:after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        .day.love-day {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            position: relative;
+        }
+
+        .day.love-day #heart {
+            position: relative;
+        }
+
+        .day.love-day span {
+            position: absolute;
+            z-index: 2;
+            color: white;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px; /* Slightly smaller font to fit in the smaller heart */
+        }
+
+        /* Pulse Animation */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <h2 id="calendar-title"></h2>
+        </div>
+        <div class="calendar-body">
+            <div class="day-names">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+            </div>
+            <div class="days-grid" id="days-grid">
+                <!-- Days will be dynamically populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const daysGrid = document.getElementById('days-grid');
+        const calendarTitle = document.getElementById('calendar-title');
+
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = 8; // September is the 8th month (0-indexed)
+
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Get number of days in September
+        const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay(); // Find out which day of the week September starts on
+
+        // Set the calendar title to "September <currentYear>"
+        calendarTitle.textContent = `September ${currentYear}`;
+
+        // Generate the calendar days
+        function generateCalendar() {
+            // Add empty blocks for days before September 1st
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('day');
+                daysGrid.appendChild(emptyDay);
+            }
+
+            // Add days of September
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.classList.add('day');
+                const span = document.createElement('span');
+                span.textContent = day;
+                dayElement.appendChild(span);
+
+                // Mark the 19th with a heart shape
+                if (day === 19) {
+                    dayElement.classList.add('love-day');
+
+                    // Replace the normal day with a heart shape
+                    dayElement.innerHTML = `
+                    <div id="heart"></div>
+                    <span>${day}</span>
+                `;
+                }
+
+                daysGrid.appendChild(dayElement);
+            }
+        }
+
+        // Initialize the calendar
+        generateCalendar();
+    </script>
+</body>
+
+</html>
