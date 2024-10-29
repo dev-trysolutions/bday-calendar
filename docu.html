@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature System with Drag and Drop</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <style>
+        #pdfViewer {
+            position: relative;
+            width: 800px;
+            height: 1000px;
+            border: 1px solid black;
+            overflow: hidden;
+        }
+
+        .draggable {
+            width: 100px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid black;
+            cursor: grab;
+            margin-bottom: 10px;
+        }
+
+        .dropzone {
+            position: relative;
+            width: 800px;
+            height: 1000px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Drag Inputs to Place on Document</h2>
+
+    <!-- Toolbox -->
+    <div id="toolbox">
+        <div class="draggable" id="textboxTool">Textbox</div>
+        <div class="draggable" id="signatureTool">Signature</div>
+    </div>
+
+    <!-- PDF Viewer -->
+    <div id="pdfViewer" class="dropzone"></div>
+
+    <!-- jQuery and jQuery UI for drag-and-drop -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+    <!-- Include PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.12.313/pdf.min.js"></script>
+
+    <!-- Signature Pad -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
+
+    <script>
+        // Load the PDF using PDF.js
+        const url = 'ticket.pdf';  // Replace with your PDF file path
+        const pdfViewer = document.getElementById('pdfViewer');
+        let pdfDoc = null, pageNum = 1;
+
+        pdfjsLib.getDocument(url).promise.then(function (pdfDoc_) {
+            pdfDoc = pdfDoc_;
+            renderPage(pageNum);
+        });
+
+        function renderPage(num) {
+            pdfDoc.getPage(num).then(function (page) {
+                const scale = 1.5;
+                const viewport = page.getViewport({ scale: scale });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                page.render(renderContext).promise.then(function () {
+                    pdfViewer.innerHTML = '';  // Clear previous content
+                    pdfViewer.appendChild(canvas);
+                });
+            });
+        }
+
+        // Draggable functionality for the toolbox items
+        $(".draggable").draggable({
+            helper: "clone",
+            cursor: 'move'
+        });
+
+        // Droppable functionality for the PDF viewer
+        $("#pdfViewer").droppable({
+            drop: function (event, ui) {
+                var pdfViewer = $(this);
+                if (!ui.draggable.hasClass('object')) {
+                    var droppedElement = ui.helper.clone();
+                    droppedElement.addClass('object');
+                    pdfViewer.append(droppedElement);
+
+                    var offset = pdfViewer.position();
+                    var elementOffset = {
+                        left: ui.position.left - offset.left,
+                        top: ui.position.top - offset.top
+                    };
+
+                    droppedElement.css({
+                        left: elementOffset.left,
+                        top: elementOffset.top,
+                        position: 'absolute',
+                        zIndex: 10
+                    });
+
+                    // Make the dropped element draggable within the PDF viewer
+                    droppedElement.draggable({
+                        cursor: 'move',
+                        containment: '#pdfViewer'
+                    });
+
+                    // If it's a signature tool, add a signature pad
+                    if (ui.helper.attr("id") === "signatureTool") {
+                        const signatureCanvas = document.createElement('canvas');
+                        signatureCanvas.width = 150;
+                        signatureCanvas.height = 80;
+                        droppedElement.html("Signature: <br>").append(signatureCanvas);
+
+                        // Set up signature pad for the dropped signature box
+                        const signaturePad = new SignaturePad(signatureCanvas);
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

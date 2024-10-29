@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draggable Elements with Saved Positions</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <style>
+        #elementContainer {
+            width: 80%;
+            height: 500px;
+            border: 2px solid #ddd;
+            position: relative;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+
+        .draggable-item {
+            display: inline-block;
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            cursor: move;
+            background-color: #e0e0e0;
+        }
+
+        .draggable-wrapper {
+            position: absolute;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            cursor: move;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="draggable-item" data-type="input">Input Field</div>
+    <div class="draggable-item" data-type="textarea">Textarea</div>
+    <div class="draggable-item" data-type="checkbox">Checkbox</div>
+
+    <div id="elementContainer"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            loadElements();
+
+            // Make the draggable items draggable
+            $('.draggable-item').draggable({
+                revert: 'invalid', // Revert if not dropped in the target area
+                helper: 'clone' // Clone the element being dragged
+            });
+
+            // Make the elementContainer droppable
+            $('#elementContainer').droppable({
+                accept: '.draggable-item',
+                drop: function (event, ui) {
+                    let elementType = ui.draggable.data('type'); // Get the data-type of the dragged item
+                    let elementToClone = ui.draggable.clone(); // Clone the dragged item
+                    let uniqueId = `element-${Date.now()}`;
+
+                    // Calculate the position where the item is dropped
+                    let offset = $(this).offset();
+                    let mouseX = event.pageX - offset.left;
+                    let mouseY = event.pageY - offset.top;
+
+                    // Adjust the position by half the size of the dragged element
+                    let elementWidth = ui.draggable.outerWidth();
+                    let elementHeight = ui.draggable.outerHeight();
+
+                    // Set the position based on the mouse coordinates, accounting for the dimensions of the cloned element
+                    elementToClone.attr('id', uniqueId)
+                        .removeClass('draggable-item') // Remove the draggable-item class
+                        .addClass('draggable-wrapper') // Add the draggable-wrapper class
+                        .css({
+                            position: 'absolute', // Set position to absolute
+                            top: `${mouseY - (elementHeight / 2)}px`, // Center the element vertically
+                            left: `${mouseX - (elementWidth / 2)}px` // Center the element horizontally
+                        });
+
+                    $(this).append(elementToClone); // Append the cloned element to the container
+                    initializeDraggable(elementToClone, uniqueId, elementType);
+                }
+            });
+
+            function initializeDraggable(element, id, type) {
+                element.draggable({
+                    containment: "#elementContainer",
+                    stop: function (event, ui) {
+                        let container = $(this).parent();
+                        let topPercentage = (ui.position.top / container.height()) * 100;
+                        let leftPercentage = (ui.position.left / container.width()) * 100;
+
+                        // Save to database via AJAX when dropped
+                        savePositionToDatabase(id, type, topPercentage, leftPercentage);
+                    }
+                });
+            }
+
+            function savePositionToDatabase(assetId, type, top, left) {
+                $.ajax({
+                    url: '/save-position',
+                    method: 'POST',
+                    data: {
+                        asset_id: assetId,
+                        type: type,
+                        position_top: top,
+                        position_left: left,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (response) {
+                        console.log("Position saved:", response);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error saving position:", error);
+                    }
+                });
+            }
+
+            function loadElements() {
+                let positions = JSON.parse(localStorage.getItem('positions')) || {};
+
+                for (const [id, pos] of Object.entries(positions)) {
+                    let elementType = pos.type;
+                    let elementToClone = $(`.draggable-item[data-type="${elementType}"]`).clone();
+                    elementToClone.attr('id', id)
+                        .removeClass('draggable-item') // Remove the draggable-item class
+                        .addClass('draggable-wrapper') // Add the draggable-wrapper class
+                        .css({
+                            top: `${pos.top}%`,
+                            left: `${pos.left}%`,
+                            position: 'absolute' // Ensure correct positioning
+                        });
+
+                    $('#elementContainer').append(elementToClone);
+                    initializeDraggable(elementToClone, id, elementType);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
