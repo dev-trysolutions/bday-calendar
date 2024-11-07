@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scattered Draggable Image Gallery</title>
+
+    <!-- jQuery and jQuery UI -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: visible;
+            /* Allow dragged images to move freely */
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            overflow: hidden;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            position: absolute;
+            border-radius: 8px;
+            z-index: 10;
+            /* Ensures thumbnails stay visible */
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            object-fit: contain;
+            /* Ensures image maintains its original aspect ratio */
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1001;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Thumbnails scattered randomly across the body -->
+    <div class="thumbnail"><img src="https://via.placeholder.com/600" alt="Image 1"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/ff0000" alt="Image 2"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/00ff00" alt="Image 3"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/0000ff" alt="Image 4"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/f0f0f0" alt="Image 5"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/00ffff" alt="Image 6"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/ff00ff" alt="Image 7"></div>
+    <div class="thumbnail"><img src="https://via.placeholder.com/600/ffff00" alt="Image 8"></div>
+
+    <!-- Modal for Enlarged Image -->
+    <div class="modal" id="imageModal">
+        <span class="close-btn" id="closeModal">&times;</span>
+        <img id="largeImage" src="" alt="Large View">
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            let wasDragged = false; // Flag to track if an image was dragged
+
+            // Function to randomly position each thumbnail on the page
+            $('.thumbnail').each(function () {
+                const xPos = Math.floor(Math.random() * ($(window).width() - 100));
+                const yPos = Math.floor(Math.random() * ($(window).height() - 100));
+                $(this).css({ left: xPos + 'px', top: yPos + 'px' });
+            });
+
+            // Make thumbnails draggable
+            $(".thumbnail").draggable({
+                containment: "window", // Allow free dragging within the window
+                stack: ".thumbnail",
+                cursor: "move",
+                helper: "original", // Use the original element instead of a helper
+                start: function (event, ui) {
+                    wasDragged = true; // Set flag to true when drag starts
+                    ui.helper.css("z-index", 100); // Bring dragged element to the front
+                },
+                stop: function (event, ui) {
+                    setTimeout(() => wasDragged = false, 100); // Reset flag after drag
+                    ui.helper.css("z-index", 10); // Reset z-index after dragging
+                }
+            });
+
+            $(".thumbnail img").on("click", function () {
+                if (!wasDragged) { // Only open modal if not dragged
+                    $("#largeImage").attr("src", $(this).attr("src"));
+                    $("#imageModal").css("display", "flex"); // Use 'display: flex' to show modal
+                }
+            });
+
+            // Close modal on clicking the close button or outside the image
+            $("#closeModal, #imageModal").on("click", function (e) {
+                if (e.target === this || e.target.id === "closeModal") {
+                    $("#imageModal").css("display", "none"); // Hide modal
+                }
+            });
+
+
+            // Close modal on clicking the close button
+            $("#closeModal").on("click", function () {
+                $("#imageModal").fadeOut();
+            });
+
+            // Close modal on clicking outside the image
+            $("#imageModal").on("click", function (e) {
+                if (e.target === this) {
+                    $(this).fadeOut();
+                }
+            });
+
+            // Adjust thumbnail positions on window resize
+            $(window).resize(function () {
+                $('.thumbnail').each(function () {
+                    const xPos = Math.floor(Math.random() * ($(window).width() - 100));
+                    const yPos = Math.floor(Math.random() * ($(window).height() - 100));
+                    $(this).css({ left: xPos + 'px', top: yPos + 'px' });
+                });
+            });
+        });
+    </script>
+
+</body>
+
+</html>
