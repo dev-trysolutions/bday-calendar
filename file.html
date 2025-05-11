@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive File Previewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .file-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-card img {
+            max-width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 9999;
+        }
+
+        .preview-modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            height: 80%;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .modal-content img,
+        .modal-content iframe,
+        .modal-content video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .close-modal,
+        .prev-file,
+        .next-file,
+        .fullscreen,
+        .download {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        .close-modal {
+            top: 10px;
+            right: 10px;
+        }
+
+        .prev-file {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .next-file {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .fullscreen {
+            bottom: 10px;
+            right: 80px;
+        }
+
+        .download {
+            bottom: 10px;
+            right: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 100%;
+                height: 90%;
+                border-radius: 0;
+            }
+
+            .close-modal,
+            .prev-file,
+            .next-file,
+            .fullscreen,
+            .download {
+                padding: 8px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Responsive File Previewer</h1>
+    <input type="file" id="fileInput" multiple>
+    <div class="file-list" id="fileList"></div>
+
+    <!-- Modal for file preview -->
+    <div class="preview-modal" id="previewModal">
+        <div class="modal-content" id="modalContent">
+            <button class="close-modal" id="closeModal">Close</button>
+            <button class="prev-file" id="prevFile">&lt; Prev</button>
+            <button class="next-file" id="nextFile">Next &gt;</button>
+            <button class="fullscreen" id="fullscreen">Fullscreen</button>
+            <button class="download" id="download">Download</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const fileList = document.getElementById("fileList");
+        const previewModal = document.getElementById("previewModal");
+        const modalContent = document.getElementById("modalContent");
+        const closeModal = document.getElementById("closeModal");
+        const prevFile = document.getElementById("prevFile");
+        const nextFile = document.getElementById("nextFile");
+        const fullscreen = document.getElementById("fullscreen");
+        const download = document.getElementById("download");
+
+        let files = []; // Stores the uploaded files
+        let currentFileIndex = 0; // Tracks the current file being previewed
+
+        const renderModalContent = () => {
+            const file = files[currentFileIndex];
+            const fileType = file.type;
+
+            // Clear existing content
+            modalContent.innerHTML = `
+        <button class="close-modal" id="closeModal">Close</button>
+        <button class="prev-file" id="prevFile">&lt; Prev</button>
+        <button class="next-file" id="nextFile">Next &gt;</button>
+        <button class="fullscreen" id="fullscreen">Fullscreen</button>
+        <button class="download" id="download">Download</button>
+      `;
+
+            // Add file preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (fileType.startsWith("image/")) {
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    modalContent.appendChild(img);
+                } else if (fileType === "application/pdf") {
+                    const iframe = document.createElement("iframe");
+                    iframe.src = e.target.result;
+                    iframe.style.width = "100%";
+                    iframe.style.height = "100%";
+                    iframe.style.border = "none";
+                    modalContent.appendChild(iframe);
+                } else if (fileType.startsWith("video/")) {
+                    const video = document.createElement("video");
+                    video.src = e.target.result;
+                    video.controls = true;
+                    modalContent.appendChild(video);
+                } else {
+                    const message = document.createElement("p");
+                    message.textContent = "Preview not available for this file type.";
+                    modalContent.appendChild(message);
+                }
+            };
+            reader.readAsDataURL(file);
+
+            // Update navigation buttons visibility
+            prevFile.style.display = currentFileIndex === 0 ? "none" : "block";
+            nextFile.style.display = currentFileIndex === files.length - 1 ? "none" : "block";
+
+            // Add button functionality
+            document.getElementById("closeModal").onclick = () => previewModal.classList.remove("active");
+            document.getElementById("prevFile").onclick = () => navigateFile(-1);
+            document.getElementById("nextFile").onclick = () => navigateFile(1);
+            document.getElementById("fullscreen").onclick = () => modalContent.requestFullscreen();
+            document.getElementById("download").onclick = () => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(file);
+                a.download = file.name;
+                a.click();
+            };
+        };
+
+        const handleFileUpload = (event) => {
+            files = Array.from(event.target.files);
+            fileList.innerHTML = ""; // Clear the file list
+
+            files.forEach((file, index) => {
+                const fileCard = document.createElement("div");
+                fileCard.className = "file-card";
+
+                const fileName = document.createElement("p");
+                fileName.textContent = file.name;
+
+                const thumbnail = document.createElement("img");
+                thumbnail.src = "https://via.placeholder.com/150"; // Placeholder for unsupported previews
+                thumbnail.alt = "Thumbnail";
+
+                if (file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        thumbnail.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                const viewButton = document.createElement("button");
+                viewButton.textContent = "Preview";
+                viewButton.onclick = () => {
+                    currentFileIndex = index;
+                    renderModalContent();
+                    previewModal.classList.add("active");
+                };
+
+                fileCard.appendChild(thumbnail);
+                fileCard.appendChild(fileName);
+                fileCard.appendChild(viewButton);
+                fileList.appendChild(fileCard);
+            });
+        };
+
+        const navigateFile = (direction) => {
+            currentFileIndex += direction;
+            if (currentFileIndex < 0) currentFileIndex = 0;
+            if (currentFileIndex >= files.length) currentFileIndex = files.length - 1;
+            renderModalContent();
+        };
+
+        fileInput.addEventListener("change", handleFileUpload);
+    </script>
+</body>
+
+</html>
